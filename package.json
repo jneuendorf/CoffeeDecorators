@@ -1,0 +1,45 @@
+{
+  "author": "Jim Neuendorf",
+  "name": "coffee-decorators",
+  "description": "This library provides functions that can be used like Python decorators or Java annotations respectively",
+  "contributors": [
+    {
+      "name": "Jim Neuendorf",
+      "email": "jim.neuendorf@gmx.de"
+    }
+  ],
+  "version": "0.0.0",
+  "keywords": [
+    "coffeescript",
+    "coffee",
+    "decorator",
+    "annotation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jneuendorf/coffee-decorators"
+  },
+  "engines": {
+    "node": ">=7.6.0"
+  },
+  "dependencies": {
+    "coffee-script": "latest",
+    "hash-it": "latest"
+  },
+  "devDependencies": {
+    "chai": "latest",
+    "coffeelint": "latest",
+    "mocha": "^3.4.2",
+    "nyc": "latest"
+  },
+  "scripts": {
+    "test": "make test",
+    "coverage": "make coverage",
+    "lint": "make lint"
+  },
+  "files": [
+    "coffee-decorators.js"
+  ],
+  "main": "coffee-decorators.js",
+  "license": "MIT"
+}
