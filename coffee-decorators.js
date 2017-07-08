@@ -113,15 +113,34 @@
 
   methodHelper = function(callback) {
     return function(dict) {
-      var cls, method, name, parent, ref;
+      var cls, method, methodWithSuper, name, parent, ref, result, superParent;
       ref = getStandardDict(dict), name = ref.name, method = ref.method;
       cls = this;
-      method = callback.call(cls, name, method, cls);
-      if (typeof method === "function") {
+      result = callback.call(cls, name, method, cls);
+      if (typeof result === "function") {
+        method = result;
         parent = CoffeeDecorators.isClassmethod(method) ? cls : cls.prototype;
-        parent[name] = method;
-        dict[name] = method;
       }
+      if (CoffeeDecorators.isClassmethod(method)) {
+        superParent = cls.__super__.constructor;
+      } else {
+        superParent = cls.__super__;
+      }
+      methodWithSuper = function() {
+        var _super, args;
+        args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+        _super = (function(_this) {
+          return function() {
+            return superParent[name].apply(_this, arguments);
+          };
+        })(this);
+        return method.apply(this, args.concat([_super]));
+      };
+      copyMethodProps(methodWithSuper, method);
+      if (parent != null) {
+        parent[name] = methodWithSuper;
+      }
+      dict[name] = methodWithSuper;
       return dict;
     };
   };
@@ -199,12 +218,12 @@
     CoffeeDecorators.override = methodHelper(function(name, method, cls) {
       var parent, parentMethod, ref;
       if (!cls.prototype[name]) {
-        throw new Error("OVERRIDE: " + cls.name + "::" + name + " does not override '" + name + "' method. ", +"Check your class inheritance or remove the `@override` decorator!");
+        throw new Error("The method " + name + " of type " + cls.name + " must ", +"override or implement a supertype method.");
       }
       parent = cls;
       while ((parent = (ref = parent.__super__) != null ? ref.constructor : void 0) != null) {
         parentMethod = parent.prototype[name];
-        if ((parentMethod != null) && cls.isFinal(parentMethod)) {
+        if ((parentMethod != null) && CoffeeDecorators.isFinal(parentMethod)) {
           throw new Error("Cannot override final method '" + parent.name + "::" + name + "' (in '" + cls.name + "')).");
         }
       }

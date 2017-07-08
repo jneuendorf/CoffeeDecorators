@@ -83,25 +83,37 @@ describe "coffee-decorators", ->
 
 
         it "deprecated", ->
-            # must inherit from CoffeeDecorators
-            expect(
-                () -> class A
-                    @deprecated \
-                    method: () ->
-                        return 2
-            ).to.throw()
-
-            class B extends CoffeeDecorators
+            class A extends CoffeeDecorators
                 @deprecated \
                 method: () ->
                     return 2
 
-            b = new B()
-            # expect(CoffeeDecorators.isDeprecated(b.method))
-            result = b.method()
+            a = new A()
+            # expect(CoffeeDecorators.isDeprecated(a.method))
+            result = a.method()
             expect(result).to.equal(2)
             expect(CoffeeDecorators.getConsole().warned.last())
-                .to.equal("Call of B::method is deprecated.")
+                .to.equal("Call of A::method is deprecated.")
+
+        it "override", ->
+            expect(() ->
+                class A extends CoffeeDecorators
+                    @override \
+                    method: () ->
+            ).to.throw()
+
+            class A extends CoffeeDecorators
+                method: () ->
+                    return 1
+
+            class B extends A
+                @override \
+                method: (_super) ->
+                    return _super() + 1
+
+            # implicit: class creation worked
+            expect((new B()).method()).to.equal(2)
+
 
     describe "class methods", ->
 

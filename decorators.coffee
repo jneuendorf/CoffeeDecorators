@@ -102,12 +102,31 @@ methodHelper = (callback) ->
     return (dict) ->
         {name, method} = getStandardDict(dict)
         cls = @
-        method = callback.call(cls, name, method, cls)
-        # a potentially new method has been returned -> attach it to the class'es prototype
-        if typeof(method) is "function"
-            parent = if CoffeeDecorators.isClassmethod(method) then cls else cls.prototype
-            parent[name] = method
-            dict[name] = method
+        result = callback.call(cls, name, method, cls)
+        isClassmethod = CoffeeDecorators.isClassmethod(method)
+        # a potentially new (class) method has been returned -> attach it to the class or its prototype
+        if typeof(result) is "function"
+            method = result
+            parent = if isClassmethod then cls else cls.prototype
+        # provide `_super` as last argument for method because
+        # CoffeeScript does not allow `super` in decorated methods:
+        #   @decorator \
+        #   method: -> super
+        if isClassmethod
+            superParent = cls.__super__.constructor
+        else
+            superParent = cls.__super__
+        methodWithSuper = (args...) ->
+            # need to define `_super` here to have the actual current `this`
+            # One could assume `this == parent` but `this` could have been bound to something else with e.g. `call`.
+            _super = () =>
+                return superParent[name].apply(@, arguments)
+            return method.apply(@, args.concat([_super]))
+
+        copyMethodProps(methodWithSuper, method)
+        if parent?
+            parent[name] = methodWithSuper
+        dict[name] = methodWithSuper
         return dict
 
 isClass = (obj) ->
@@ -175,14 +194,14 @@ class CoffeeDecorators
         # => method is NOT overridden
         if not cls::[name]
             throw new Error(
-                "OVERRIDE: #{cls.name}::#{name} does not override '#{name}' method. "
-                + "Check your class inheritance or remove the `@override` decorator!"
+                "The method #{name} of type #{cls.name} must "
+                + "override or implement a supertype method."
             )
         # look for final super methods
         parent = cls
         while (parent = parent.__super__?.constructor)?
             parentMethod = parent::[name]
-            if parentMethod? and cls.isFinal(parentMethod)
+            if parentMethod? and CoffeeDecorators.isFinal(parentMethod)
                 throw new Error("Cannot override final method '#{parent.name}::#{name}' (in '#{cls.name}')).")
         return method
     # @override: (dict) ->
