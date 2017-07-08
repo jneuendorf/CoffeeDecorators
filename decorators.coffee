@@ -77,7 +77,7 @@ exports.interface = defineDecorator "interface", abstractDecorationHelper () ->
 #
 # CoffeeScript:
 #   @deprecated \
-#   method: () ->
+#   medd: () ->
 #
 # JavaScript:
 #   <CLASS_NAME>.deprecated({
@@ -92,19 +92,22 @@ getStandardDict = (dict) ->
 
 # helper function to copy all properties in case of decorator chaining
 copyMethodProps = (newMethod, oldMethod) ->
-    for own key, val of oldMethod when not newMethod[prop]?
+    for own key, val of oldMethod when not newMethod[key]?
         newMethod[key] = val
     return newMethod
 
+# `callback` may return the new method or {method, parent}
+# where method is the new method and parent is the object to attach the new method to.
 methodHelper = (callback) ->
     return (dict) ->
         {name, method} = getStandardDict(dict)
         cls = @
-        method = callback(name, method, cls)
+        method = callback.call(cls, name, method, cls)
         # a potentially new method has been returned -> attach it to the class'es prototype
         if typeof(method) is "function"
-            # if isClass(obj)
-            cls::[name] = method
+            parent = if CoffeeDecorators.isClassmethod(method) then cls else cls.prototype
+            parent[name] = method
+            dict[name] = method
         return dict
 
 isClass = (obj) ->
@@ -113,8 +116,8 @@ isClass = (obj) ->
 # Get the class name of `this` - wether it's a class or an instance.
 methodString = (obj, methodName) ->
     if isClass(obj)
-        return "#{obj.name}::#{methodName}"
-    return "#{obj.constructor.name}.#{methodName}"
+        return "#{obj.name}.#{methodName}"
+    return "#{obj.constructor.name}::#{methodName}"
 
 
 # DECORATORS FOR INSIDE CLASSES THAT EXTEND THE NATIVE OBJECT
@@ -122,6 +125,7 @@ methodString = (obj, methodName) ->
 class CoffeeDecorators
 
     _console = console
+    _allowOverrideDecorators = false
 
     @setConsole: (console) ->
         _console = console
@@ -130,19 +134,39 @@ class CoffeeDecorators
     @getConsole: () ->
         return _console
 
+    @allowOverrideDecorators: () ->
+        _allowOverrideDecorators = true
+
+    @forbidOverrideDecorators: () ->
+        _allowOverrideDecorators = false
+
+
+    @isClassmethod: (method) ->
+        return method.__classmethod__ is true
+
     @isDeprecated: (method) ->
         return method.__isDeprecated__ is true
 
     @isFinal: (method) ->
-        return method.__isFinal__ is true
+        return method.__final__ is true
 
 
+    @classmethod: methodHelper (name, method, cls) ->
+        if name is "classmethod" and _allowOverrideDecorators is false
+            throw new Error("You are using the '@classmethod' decorator on a method named 'classmethod'. This is not allowed unless you call 'CoffeeDecorators.allowOverrideDecorators()' first.")
+        # Due to decorator chaining the method has previously been attached
+        # to the prototype instead of the class itself
+        # => remove it there so it only exists on the class.
+        if cls::[name] is method
+            delete cls::[name]
+        method.__classmethod__ = true
+        return method
 
     @deprecated: methodHelper (name, method) ->
         wrapper = () ->
             _console.warn("Call of #{methodString(@, name)} is deprecated.")
             return method.apply(@, arguments)
-        wrapper.__isDeprecated__ = true
+        wrapper.__deprecated__ = true
         return copyMethodProps(wrapper, method)
 
     @override: methodHelper (name, method, cls) ->

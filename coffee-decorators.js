@@ -104,7 +104,7 @@
     for (key in oldMethod) {
       if (!hasProp.call(oldMethod, key)) continue;
       val = oldMethod[key];
-      if (newMethod[prop] == null) {
+      if (newMethod[key] == null) {
         newMethod[key] = val;
       }
     }
@@ -113,12 +113,14 @@
 
   methodHelper = function(callback) {
     return function(dict) {
-      var cls, method, name, ref;
+      var cls, method, name, parent, ref;
       ref = getStandardDict(dict), name = ref.name, method = ref.method;
       cls = this;
-      method = callback(name, method, cls);
+      method = callback.call(cls, name, method, cls);
       if (typeof method === "function") {
-        cls.prototype[name] = method;
+        parent = CoffeeDecorators.isClassmethod(method) ? cls : cls.prototype;
+        parent[name] = method;
+        dict[name] = method;
       }
       return dict;
     };
@@ -130,17 +132,19 @@
 
   methodString = function(obj, methodName) {
     if (isClass(obj)) {
-      return obj.name + "::" + methodName;
+      return obj.name + "." + methodName;
     }
-    return obj.constructor.name + "." + methodName;
+    return obj.constructor.name + "::" + methodName;
   };
 
   CoffeeDecorators = (function() {
-    var _console;
+    var _allowOverrideDecorators, _console;
 
     function CoffeeDecorators() {}
 
     _console = console;
+
+    _allowOverrideDecorators = false;
 
     CoffeeDecorators.setConsole = function(console) {
       _console = console;
@@ -151,13 +155,36 @@
       return _console;
     };
 
+    CoffeeDecorators.allowOverrideDecorators = function() {
+      return _allowOverrideDecorators = true;
+    };
+
+    CoffeeDecorators.forbidOverrideDecorators = function() {
+      return _allowOverrideDecorators = false;
+    };
+
+    CoffeeDecorators.isClassmethod = function(method) {
+      return method.__classmethod__ === true;
+    };
+
     CoffeeDecorators.isDeprecated = function(method) {
       return method.__isDeprecated__ === true;
     };
 
     CoffeeDecorators.isFinal = function(method) {
-      return method.__isFinal__ === true;
+      return method.__final__ === true;
     };
+
+    CoffeeDecorators.classmethod = methodHelper(function(name, method, cls) {
+      if (name === "classmethod" && _allowOverrideDecorators === false) {
+        throw new Error("You are using the '@classmethod' decorator on a method named 'classmethod'. This is not allowed unless you call 'CoffeeDecorators.allowOverrideDecorators()' first.");
+      }
+      if (cls.prototype[name] === method) {
+        delete cls.prototype[name];
+      }
+      method.__classmethod__ = true;
+      return method;
+    });
 
     CoffeeDecorators.deprecated = methodHelper(function(name, method) {
       var wrapper;
@@ -165,7 +192,7 @@
         _console.warn("Call of " + (methodString(this, name)) + " is deprecated.");
         return method.apply(this, arguments);
       };
-      wrapper.__isDeprecated__ = true;
+      wrapper.__deprecated__ = true;
       return copyMethodProps(wrapper, method);
     });
 

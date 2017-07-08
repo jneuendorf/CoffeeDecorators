@@ -13,6 +13,29 @@ else
 should = do chai.should
 
 
+useCustomConsole = () ->
+    class Console
+        constructor: () ->
+            @logged = []
+            @warned = []
+            @errors = []
+
+        log: (args...) ->
+            @logged.push(args.join(" "))
+            return @
+
+        warn: (args...) ->
+            @warned.push(args.join(" "))
+            return @
+
+        error: (args...) ->
+            @errors.push(args.join(" "))
+            return @
+    CoffeeDecorators.setConsole(new Console())
+    Array::last = () ->
+        return @slice(-1)[0]
+
+
 describe "coffee-decorators", ->
 
     describe "classes", ->
@@ -53,26 +76,7 @@ describe "coffee-decorators", ->
     describe "methods", ->
 
         before ->
-            class Console
-                constructor: () ->
-                    @logged = []
-                    @warned = []
-                    @errors = []
-
-                log: (args...) ->
-                    @logged.push(args.join(" "))
-                    return @
-
-                warn: (args...) ->
-                    @warned.push(args.join(" "))
-                    return @
-
-                error: (args...) ->
-                    @errors.push(args.join(" "))
-                    return @
-            CoffeeDecorators.setConsole(new Console())
-            Array::last = () ->
-                return @slice(-1)[0]
+            useCustomConsole()
 
         after ->
             CoffeeDecorators.setConsole(console)
@@ -93,29 +97,50 @@ describe "coffee-decorators", ->
                     return 2
 
             b = new B()
-            expect(CoffeeDecorators.isDeprecated(b.method))
+            # expect(CoffeeDecorators.isDeprecated(b.method))
             result = b.method()
             expect(result).to.equal(2)
-            expect(CoffeeDecorators.getConsole().warned.last()).to.equal("Call of B::method is deprecated.")
+            expect(CoffeeDecorators.getConsole().warned.last())
+                .to.equal("Call of B::method is deprecated.")
 
     describe "class methods", ->
+
+        before ->
+            useCustomConsole()
+
+        after ->
+            CoffeeDecorators.setConsole(console)
+
+
         it "classmethod", ->
             class B extends CoffeeDecorators
                 @classmethod \
-                classmethod: () ->
+                classMethod: () ->
                     return 2
-            expect(B.classmethod).to.be.a("function")
-            expect(B.classmethod()).to.equal(2)
+            expect(B.classMethod).to.be.a("function")
+            expect(B.classMethod()).to.equal(2)
 
         it "deprecated", ->
             class B extends CoffeeDecorators
                 @deprecated @classmethod \
-                classmethod: () ->
+                classMethod1: () ->
+                    return 1
+
+                @classmethod @deprecated \
+                classMethod2: () ->
                     return 2
 
-            expect(CoffeeDecorators.isDeprecated(B.classmethod))
-            result = B.classmethod()
+            result = B.classMethod1()
+            expect(result).to.equal(1)
+            expect(CoffeeDecorators.getConsole().warned.last())
+                .to.equal("Call of B.classMethod1 is deprecated.")
+            result = B.classMethod2()
             expect(result).to.equal(2)
-            expect(CoffeeDecorators.getConsole().warned.last()).to.eql([
-                "Call of B.classmethod is deprecated."
-            ])
+            expect(CoffeeDecorators.getConsole().warned.last())
+                .to.equal("Call of B.classMethod2 is deprecated.")
+
+    describe "introspection", ->
+
+        it "isClassmethod", ->
+        it "isDeprecated", ->
+        it "isFinal", ->
