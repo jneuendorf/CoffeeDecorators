@@ -8,11 +8,13 @@ else
     exports = window
 
 
-wrap_in_named_function = (name, func) ->
-    return eval("(function " + name + "(){return func.apply(this, arguments);})")
 
+# These decorators only work for classes that are defined in the global namespace.
+exports.abstract = defineDecorator "abstract", abstractDecorationHelper () ->
+    return "Cannot instantiate abstract class '#{@constructor.name}'."
 
-
+exports.interface = defineDecorator "interface", abstractDecorationHelper () ->
+    return "Cannot instantiate interface '#{@constructor.name}'."
 
 defineDecorator = (name, func) ->
     if root[name]?
@@ -21,8 +23,6 @@ defineDecorator = (name, func) ->
         return func(args...)
     return root[name]
 
-
-# HELPERS
 abstractDecorationHelper = (createErrorMessage) ->
     return (args...) ->
         if args.length is 2
@@ -47,7 +47,7 @@ abstractDecorationHelper = (createErrorMessage) ->
             # Wrapping the function results in the loss of properties -> we use this reference to reattach them
             origClass = Decorated
             # wrap the constructor and give it the `name`
-            Decorated = wrap_in_named_function(name, Decorated)
+            Decorated = wrapInNamedFunction(name, Decorated)
             # reattach __super__ and all other class attributes
             for own key, val of origClass
                 Decorated[key] = val
@@ -56,20 +56,8 @@ abstractDecorationHelper = (createErrorMessage) ->
             namespace[name] = decoratedClass
         return decoratedClass
 
-
-# DECORATORS
-
-# These decorators only work for classes that are (directly) defined in the `App` namespace.
-exports.abstract = defineDecorator "abstract", abstractDecorationHelper () ->
-    return "Cannot instantiate abstract class '#{@constructor.name}'."
-
-exports.interface = defineDecorator "interface", abstractDecorationHelper () ->
-    return "Cannot instantiate interface '#{@constructor.name}'."
-
-
-
-
-
+wrapInNamedFunction = (name, func) ->
+    return eval("(function " + name + "(){return func.apply(this, arguments);})")
 
 
 # helper function that converts given 1-elemtent dict (with any key) to {name, method}.
@@ -204,22 +192,6 @@ class CoffeeDecorators
             if parentMethod? and CoffeeDecorators.isFinal(parentMethod)
                 throw new Error("Cannot override final method '#{parent.name}::#{name}' (in '#{cls.name}')).")
         return method
-    # @override: (dict) ->
-    #     {name, method} = getStandardDict(dict)
-    #     # the prototype chain does not already contain the method
-    #     # => it was not defined in a superclass
-    #     # => method is NOT overridden
-    #     if not @::[name]
-    #         throw new Error("OVERRIDE: #{@name}::#{name} does not override '#{name}' method. Check your class inheritance or remove the `@override` decorator!")
-    #     # look for final super methods
-    #     parent = @__super__?.constructor
-    #     while parent?
-    #         parentMethod = parent::[name]
-    #         if parentMethod? and parentMethod.isFinal is true
-    #             throw new Error("Cannot override final method '#{parent.name}::#{name}' (in '#{@name}')).")
-    #         parent = parent.__super__?.constructor
-    #     @::[name] = method
-    #     return dict
 
     # this method is different than most because it is used like:
     # @implements(App.ExampleInterface) \
