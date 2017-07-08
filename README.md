@@ -36,7 +36,6 @@ classMethod: ->
 ```
 
 ### `@classmethod`
-
 Because
 
 ```coffee
@@ -59,10 +58,22 @@ A.classMethod()
 ```
 
 ### `@deprecated`
+When the method is called a warning will be printed (with `console.warn`).
+
 ### `@abstract`
+The decorated method must not have a body and must not be called.
+
 ### `@override`
+A method with the same name as the decorated method must exist somewhere in the class hierarchy (above the method's class).
+
 ### `@implements`
+Like `@override` but explicates where the overridden method is defined.
+
 ### `@final`
+The decorated method must not be overridden.
+If a method with the same name in a subclass is decorated with `@override` an error is thrown upon class creation.
+Otherwise an error will be thrown when the final method is called and `this !== <instance of according class>`.
+
 ### `@cached`
 ### `@cachedProperty`
 

@@ -208,6 +208,9 @@ class CoffeeDecorators
 
     @abstract: (dict) ->
         {name, method} = getStandardDict(dict)
+        if not (/function\(.*\)\{\s*\}/g).test("#{method}")
+            throw new Error("Abstract methods must not have a function body.")
+
         cls = @
         wrapperMethod = () ->
             # this check must contain dynamic lookup because the method could still be replaced by further decorators (-> wrappers)
