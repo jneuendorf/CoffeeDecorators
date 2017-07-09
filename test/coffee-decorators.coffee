@@ -103,6 +103,12 @@ describe "coffee-decorators", ->
                         return true
             ).to.throw(/^Abstract methods must not have a function body\.$/)
 
+            class A extends CoffeeDecorators
+                @abstract \
+                method: () ->
+
+            expect(() -> (new A()).method()).to.throw(/^A::method must not be called because it is abstract\.$/)
+
         it "override", ->
             expect(() ->
                 class A extends CoffeeDecorators
@@ -158,6 +164,22 @@ describe "coffee-decorators", ->
             expect(result).to.equal(2)
             expect(CoffeeDecorators.getConsole().warned.last())
                 .to.equal("Call of B.classMethod2 is deprecated.")
+
+        it "abstract", ->
+            expect(() ->
+                class A extends CoffeeDecorators
+                    @abstract \
+                    @classmethod \
+                    classMethod: () ->
+                        return true
+            ).to.throw(/^Abstract methods must not have a function body\.$/)
+
+            class A extends CoffeeDecorators
+                @abstract \
+                @classmethod \
+                classMethod: () ->
+
+            expect(() -> A.classMethod()).to.throw(/^A\.classMethod must not be called because it is abstract\.$/)
 
     describe "introspection", ->
 

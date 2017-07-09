@@ -103,6 +103,7 @@ methodHelper = (callback) ->
             _super = () =>
                 return superParent[name].apply(@, arguments)
             return method.apply(@, args.concat([_super]))
+        methodWithSuper.__wrapped__ = method
 
         copyMethodProps(methodWithSuper, method)
         if parent?
@@ -144,6 +145,7 @@ class CoffeeDecorators
     _console = console
     _allowOverrideDecorators = false
 
+    # CONFIGURATION
     @setConsole: (console) ->
         _console = console
         return @
@@ -157,6 +159,12 @@ class CoffeeDecorators
     @forbidOverrideDecorators: () ->
         _allowOverrideDecorators = false
 
+    # INTROSPECTION
+    @getWrappedMethod: (wrapper) ->
+        wrapped = wrapper
+        while wrapped.__wrapped__?
+            wrapped = wrapped.__wrapped__
+        return wrapped
 
     @isClassmethod: (method) ->
         return method.__classmethod__ is true
@@ -167,7 +175,7 @@ class CoffeeDecorators
     @isFinal: (method) ->
         return method.__final__ is true
 
-
+    # DECORATORS
     @classmethod: methodHelper (name, method, cls) ->
         if name is "classmethod" and _allowOverrideDecorators is false
             throw new Error("You are using the '@classmethod' decorator on a method named 'classmethod'. This is not allowed unless you call 'CoffeeDecorators.allowOverrideDecorators()' first.")
@@ -184,6 +192,21 @@ class CoffeeDecorators
             _console.warn("Call of #{methodString(@, name)} is deprecated.")
             return method.apply(@, arguments)
         wrapper.__deprecated__ = true
+        return copyMethodProps(wrapper, method)
+
+    @abstract: methodHelper (name, method) ->
+        if not (/^function\s*\(.*?\)\s*\{\s*\}$/).test("#{@getWrappedMethod(method)}")
+            throw new Error("Abstract methods must not have a function body.")
+
+        cls = @
+        wrapper = () ->
+            if cls.isClassmethod(@[name])
+                parent = cls
+            else
+                parent = cls.prototype
+            # this check must contain dynamic lookup because the method could still be replaced by further decorators (-> wrappers)
+            if @[name] is parent[name]
+                throw new Error("#{methodString(parent, name)} must not be called because it is abstract.")
         return copyMethodProps(wrapper, method)
 
     @override: methodHelper (name, method, cls) ->
@@ -215,19 +238,6 @@ class CoffeeDecorators
             if interfaceCls not in heterarchy.mro(@) or interfaceCls::[name] not instanceof Function
                 throw new Error("IMPLEMENTS: #{@name}::#{name} does not implement the '#{interfaceCls.name}' interface.")
             return dict
-
-    @abstract: (dict) ->
-        {name, method} = getStandardDict(dict)
-        if not (/function\(.*\)\{\s*\}/g).test("#{method}")
-            throw new Error("Abstract methods must not have a function body.")
-
-        cls = @
-        wrapperMethod = () ->
-            # this check must contain dynamic lookup because the method could still be replaced by further decorators (-> wrappers)
-            if @[name] is cls::[name]
-                throw new Error("#{cls.getName()}::#{name} must not be called because it is abstract and must be overridden.")
-        @::[name] = copyMethodProps(wrapperMethod, method)
-        return dict
 
     @cachedProperty: (dict) ->
         {name, method} = getStandardDict(dict)

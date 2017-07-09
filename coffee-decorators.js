@@ -129,6 +129,7 @@
         })(this);
         return method.apply(this, args.concat([_super]));
       };
+      methodWithSuper.__wrapped__ = method;
       copyMethodProps(methodWithSuper, method);
       if (parent != null) {
         parent[name] = methodWithSuper;
@@ -192,6 +193,15 @@
       return _allowOverrideDecorators = false;
     };
 
+    CoffeeDecorators.getWrappedMethod = function(wrapper) {
+      var wrapped;
+      wrapped = wrapper;
+      while (wrapped.__wrapped__ != null) {
+        wrapped = wrapped.__wrapped__;
+      }
+      return wrapped;
+    };
+
     CoffeeDecorators.isClassmethod = function(method) {
       return method.__classmethod__ === true;
     };
@@ -225,6 +235,26 @@
       return copyMethodProps(wrapper, method);
     });
 
+    CoffeeDecorators.abstract = methodHelper(function(name, method) {
+      var cls, wrapper;
+      if (!/^function\s*\(.*?\)\s*\{\s*\}$/.test("" + (this.getWrappedMethod(method)))) {
+        throw new Error("Abstract methods must not have a function body.");
+      }
+      cls = this;
+      wrapper = function() {
+        var parent;
+        if (cls.isClassmethod(this[name])) {
+          parent = cls;
+        } else {
+          parent = cls.prototype;
+        }
+        if (this[name] === parent[name]) {
+          throw new Error((methodString(parent, name)) + " must not be called because it is abstract.");
+        }
+      };
+      return copyMethodProps(wrapper, method);
+    });
+
     CoffeeDecorators.override = methodHelper(function(name, method, cls) {
       var parent, parentMethod, ref;
       if (!cls.prototype[name]) {
@@ -252,22 +282,6 @@
           return dict;
         };
       })(this);
-    };
-
-    CoffeeDecorators.abstract = function(dict) {
-      var cls, method, name, ref, wrapperMethod;
-      ref = getStandardDict(dict), name = ref.name, method = ref.method;
-      if (!/function\(.*\)\{\s*\}/g.test("" + method)) {
-        throw new Error("Abstract methods must not have a function body.");
-      }
-      cls = this;
-      wrapperMethod = function() {
-        if (this[name] === cls.prototype[name]) {
-          throw new Error((cls.getName()) + "::" + name + " must not be called because it is abstract and must be overridden.");
-        }
-      };
-      this.prototype[name] = copyMethodProps(wrapperMethod, method);
-      return dict;
     };
 
     CoffeeDecorators.cachedProperty = function(dict) {
