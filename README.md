@@ -61,7 +61,20 @@ A.classMethod()
 When the method is called a warning will be printed (with `console.warn`).
 
 ### `@abstract`
-The decorated method must not have a body and must not be called.
+This decorator exists for classes, class methods and (instance) methods.
+
+#### Classes
+
+```coffee
+@abstract class Shape
+    pass # necessary only if no statements exist within the class
+@abstract namespace, class Shape
+    pass # necessary only if no statements exist within the class
+```
+
+
+#### (Class) methods
+The decorated method must not have a body and must not be called (but overridden).
 
 ### `@override`
 A method with the same name as the decorated method must exist somewhere in the class hierarchy (above the method's class).

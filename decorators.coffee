@@ -8,6 +8,12 @@ else
     exports = window
 
 
+Object.defineProperty root, "pass", {
+    get: () ->
+        return undefined
+    set: () ->
+        return undefined
+}
 
 # These decorators only work for classes that are defined in the global namespace.
 exports.abstract = defineDecorator "abstract", abstractDecorationHelper () ->
