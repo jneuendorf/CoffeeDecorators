@@ -19,7 +19,7 @@ MOCHA_DEBUG_CMD = $(MOCHA) --inspect-brk $(MOCHA_OPTIONS)
 all: coffee
 
 coffee:
-	cat ./decorators.coffee | $(COFFEE) --compile --stdio > ./coffee-decorators.js
+	cat $(FILES) | $(COFFEE) --compile --stdio > ./coffee-decorators.js
 
 test: all
 	$(MOCHA_CMD)

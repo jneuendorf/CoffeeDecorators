@@ -8,19 +8,6 @@ else
     exports = window
 
 
-Object.defineProperty root, "pass", {
-    get: () ->
-        return undefined
-    set: () ->
-        return undefined
-}
-
-# These decorators only work for classes that are defined in the global namespace.
-exports.abstract = defineDecorator "abstract", abstractDecorationHelper () ->
-    return "Cannot instantiate abstract class '#{@constructor.name}'."
-
-exports.interface = defineDecorator "interface", abstractDecorationHelper () ->
-    return "Cannot instantiate interface '#{@constructor.name}'."
 
 defineDecorator = (name, func) ->
     if root[name]?
@@ -71,7 +58,7 @@ wrapInNamedFunction = (name, func) ->
 #
 # CoffeeScript:
 #   @deprecated \
-#   medd: () ->
+#   method: () ->
 #
 # JavaScript:
 #   <CLASS_NAME>.deprecated({
@@ -131,6 +118,23 @@ methodString = (obj, methodName) ->
     if isClass(obj)
         return "#{obj.name}.#{methodName}"
     return "#{obj.constructor.name}::#{methodName}"
+
+
+
+Object.defineProperty exports, "pass", {
+    get: () ->
+        return undefined
+    set: () ->
+        return undefined
+}
+
+# These decorators only work for classes that are defined in the global namespace.
+exports.abstract = defineDecorator "abstract", abstractDecorationHelper () ->
+    return "Cannot instantiate abstract class '#{@constructor.name}'."
+
+exports.interface = defineDecorator "interface", abstractDecorationHelper () ->
+    return "Cannot instantiate interface '#{@constructor.name}'."
+
 
 
 # DECORATORS FOR INSIDE CLASSES THAT EXTEND THE NATIVE OBJECT

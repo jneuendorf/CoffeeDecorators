@@ -2,12 +2,12 @@
 if typeof global is "object" and global?.global is global
     root = global
     chai = require("chai")
-    CoffeeDecorators = require("../coffee-decorators").CoffeeDecorators
+    {CoffeeDecorators} = require("../coffee-decorators")
 # browser
 else
     root = window
     chai = window.chai
-    CoffeeDecorators = window.CoffeeDecorators
+    {CoffeeDecorators} = window
 
 {expect} = chai
 should = do chai.should
@@ -94,6 +94,14 @@ describe "coffee-decorators", ->
             expect(result).to.equal(2)
             expect(CoffeeDecorators.getConsole().warned.last())
                 .to.equal("Call of A::method is deprecated.")
+
+        it "abstract", ->
+            expect(() ->
+                class A extends CoffeeDecorators
+                    @abstract \
+                    method: () ->
+                        return true
+            ).to.throw(/^Abstract methods must not have a function body\.$/)
 
         it "override", ->
             expect(() ->
