@@ -213,17 +213,28 @@ class CoffeeDecorators
         # the prototype chain does not already contain the method
         # => it was not defined in a superclass
         # => method is NOT overridden
-        if not cls::[name]
+        isClassmethod = cls.isClassmethod(method)
+        getParent = (prototype) ->
+            if isClassmethod
+                return prototype.constructor
+            return prototype
+
+        if not getParent(cls.prototype)[name]?
             throw new Error(
-                "The method #{name} of type #{cls.name} must "
-                + "override or implement a supertype method."
+                "The method #{name} of type #{cls.name} must " +
+                "override or implement a supertype method."
             )
         # look for final super methods
-        parent = cls
-        while (parent = parent.__super__?.constructor)?
-            parentMethod = parent::[name]
-            if parentMethod? and CoffeeDecorators.isFinal(parentMethod)
-                throw new Error("Cannot override final method '#{parent.name}::#{name}' (in '#{cls.name}')).")
+        superProto = cls.prototype
+        while superProto.constructor.__super__?
+            superProto = superProto.constructor.__super__
+            parent = getParent(superProto)
+            superMethod = parent[name]
+            if superMethod? and CoffeeDecorators.isFinal(superMethod)
+                throw new Error(
+                    "#{methodString(cls, name)} must not override " +
+                    "final method #{methodString(parent, name)}."
+                )
         return method
 
     # this method is different than most because it is used like:

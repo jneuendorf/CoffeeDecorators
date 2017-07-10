@@ -106,8 +106,17 @@ describe "coffee-decorators", ->
             class A extends CoffeeDecorators
                 @abstract \
                 method: () ->
+            class B extends A
+                # Could use: @override \
+                method: () ->
+                    return 1
 
             expect(() -> (new A()).method()).to.throw(/^A::method must not be called because it is abstract\.$/)
+            expect(
+                () ->
+                    return (new B()).method()
+            ).to.not.throw()
+            expect((new B()).method()).to.equal(1)
 
         it "override", ->
             expect(() ->
@@ -179,7 +188,50 @@ describe "coffee-decorators", ->
                 @classmethod \
                 classMethod: () ->
 
+            class B extends A
+                # Could use: @override \
+                @classmethod \
+                classMethod: () ->
+                    return 1
+
             expect(() -> A.classMethod()).to.throw(/^A\.classMethod must not be called because it is abstract\.$/)
+            expect(
+                () ->
+                    return B.classMethod()
+            ).to.not.throw()
+            expect(B.classMethod()).to.equal(1)
+
+        it "override", ->
+            expect(() ->
+                class A extends CoffeeDecorators
+                    @classmethod \
+                    @override \
+                    classMethod: () ->
+            ).to.throw()
+
+            class A extends CoffeeDecorators
+                @classmethod \
+                classMethod: () ->
+                    return 1
+
+            class B extends A
+                @override \
+                @classmethod \
+                classMethod: (_super) ->
+                    return _super() + 1
+
+            # for now this is way easier than implementing a process than validates after all decorators have been run
+            expect(() ->
+                class C extends A
+                    @classmethod \
+                    @override \
+                    classMethod: (_super) ->
+                        return _super() + 1
+            ).to.throw(/^The method classMethod of type C must override or implement a supertype method\.$/)
+
+
+            # implicit: class creation worked
+            expect(B.classMethod()).to.equal(2)
 
     describe "introspection", ->
 

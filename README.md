@@ -20,7 +20,8 @@ method: ->
 
 ## Decorators
 
-All decorators can be chained in any order.
+Almost all decorators can be chained in any order.
+For a list of exceptions see this [list](#decorator-combinations-that-require-a-certain-order).
 For example the two are equal:
 
 ```coffee
@@ -72,9 +73,8 @@ This decorator exists for classes, class methods and (instance) methods.
     pass # necessary only if no statements exist within the class
 ```
 
-
 #### (Class) methods
-The decorated method must not have a body and must not be called (but overridden).
+The decorated method must not have a body and must not be called directly (but overridden).
 
 ### `@override`
 A method with the same name as the decorated method must exist somewhere in the class hierarchy (above the method's class).
@@ -89,6 +89,10 @@ Otherwise an error will be thrown when the final method is called and `this !== 
 
 ### `@cached`
 ### `@cachedProperty`
+
+## Decorator combinations that require a certain order
+
+- `@override @classmethod`
 
 ## Examples
 

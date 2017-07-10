@@ -256,15 +256,24 @@
     });
 
     CoffeeDecorators.override = methodHelper(function(name, method, cls) {
-      var parent, parentMethod, ref;
-      if (!cls.prototype[name]) {
-        throw new Error("The method " + name + " of type " + cls.name + " must ", +"override or implement a supertype method.");
+      var getParent, isClassmethod, parent, superMethod, superProto;
+      isClassmethod = cls.isClassmethod(method);
+      getParent = function(prototype) {
+        if (isClassmethod) {
+          return prototype.constructor;
+        }
+        return prototype;
+      };
+      if (getParent(cls.prototype)[name] == null) {
+        throw new Error(("The method " + name + " of type " + cls.name + " must ") + "override or implement a supertype method.");
       }
-      parent = cls;
-      while ((parent = (ref = parent.__super__) != null ? ref.constructor : void 0) != null) {
-        parentMethod = parent.prototype[name];
-        if ((parentMethod != null) && CoffeeDecorators.isFinal(parentMethod)) {
-          throw new Error("Cannot override final method '" + parent.name + "::" + name + "' (in '" + cls.name + "')).");
+      superProto = cls.prototype;
+      while (superProto.constructor.__super__ != null) {
+        superProto = superProto.constructor.__super__;
+        parent = getParent(superProto);
+        superMethod = parent[name];
+        if ((superMethod != null) && CoffeeDecorators.isFinal(superMethod)) {
+          throw new Error(((methodString(cls, name)) + " must not override ") + ("final method " + (methodString(parent, name)) + "."));
         }
       }
       return method;
