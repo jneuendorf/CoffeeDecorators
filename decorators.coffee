@@ -170,7 +170,7 @@ class CoffeeDecorators
         return method.__classmethod__ is true
 
     @isDeprecated: (method) ->
-        return method.__isDeprecated__ is true
+        return method.__deprecated__ is true
 
     @isFinal: (method) ->
         return method.__final__ is true
@@ -237,18 +237,15 @@ class CoffeeDecorators
                 )
         return method
 
-    # this method is different than most because it is used like:
-    # @implements(App.ExampleInterface) \
-    # method: (a, b) ->
-    # Thus it gets the interface as argument and must return a function that gets the `dict`.
-    @implements: (interfaceCls) ->
-        # this function gets called immediately
-        return (dict) =>
-            {name, method} = getStandardDict(dict)
-            @::[name] = method
-            if interfaceCls not in heterarchy.mro(@) or interfaceCls::[name] not instanceof Function
-                throw new Error("IMPLEMENTS: #{@name}::#{name} does not implement the '#{interfaceCls.name}' interface.")
-            return dict
+    # only works if an accidentally overriding method uses `@override` or calls `super` or `_super`.
+    @final: methodHelper (name, method, cls) ->
+        wrapperMethod = () ->
+            if @[name] isnt cls::[name]
+                # `cls::getClassName()` is used insteaf of `cls.getName()` because heterarchy does not correctly support class method inheritance
+                throw new Error("Method '#{cls::getClassName()}::#{name}' is final and must not be overridden (in '#{@getClassName()}')")
+            return method.apply(@, arguments)
+        wrapperMethod.__final__ = true
+        return copyMethodProps(wrapperMethod, method)
 
     @cachedProperty: (dict) ->
         {name, method} = getStandardDict(dict)
@@ -295,19 +292,6 @@ class CoffeeDecorators
             return value
         wrapperMethod.clearCache = () ->
             cache = createCache()
-        @::[name] = copyMethodProps(wrapperMethod, method)
-        return dict
-
-    # only works if an accidental overriding method uses `@override` or calls `super`
-    @final: (dict) ->
-        {name, method} = getStandardDict(dict)
-        cls = @
-        wrapperMethod = () ->
-            if @[name] isnt cls::[name]
-                # `cls::getClassName()` is used insteaf of `cls.getName()` because heterarchy does not correctly support class method inheritance
-                throw new Error("Method '#{cls::getClassName()}::#{name}' is final and must not be overridden (in '#{@getClassName()}')")
-            return method.apply(@, arguments)
-        wrapperMethod.isFinal = true
         @::[name] = copyMethodProps(wrapperMethod, method)
         return dict
 

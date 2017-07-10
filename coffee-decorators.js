@@ -3,8 +3,7 @@
   var CoffeeDecorators, abstractDecorationHelper, copyMethodProps, defineDecorator, exports, getStandardDict, isClass, methodHelper, methodString, root, wrapInNamedFunction,
     slice = [].slice,
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-    hasProp = {}.hasOwnProperty,
-    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    hasProp = {}.hasOwnProperty;
 
   if (typeof global === "object" && (typeof global !== "undefined" && global !== null ? global.global : void 0) === global) {
     root = global;
@@ -207,7 +206,7 @@
     };
 
     CoffeeDecorators.isDeprecated = function(method) {
-      return method.__isDeprecated__ === true;
+      return method.__deprecated__ === true;
     };
 
     CoffeeDecorators.isFinal = function(method) {
@@ -279,19 +278,17 @@
       return method;
     });
 
-    CoffeeDecorators["implements"] = function(interfaceCls) {
-      return (function(_this) {
-        return function(dict) {
-          var method, name, ref;
-          ref = getStandardDict(dict), name = ref.name, method = ref.method;
-          _this.prototype[name] = method;
-          if (indexOf.call(heterarchy.mro(_this), interfaceCls) < 0 || !(interfaceCls.prototype[name] instanceof Function)) {
-            throw new Error("IMPLEMENTS: " + _this.name + "::" + name + " does not implement the '" + interfaceCls.name + "' interface.");
-          }
-          return dict;
-        };
-      })(this);
-    };
+    CoffeeDecorators.final = methodHelper(function(name, method, cls) {
+      var wrapperMethod;
+      wrapperMethod = function() {
+        if (this[name] !== cls.prototype[name]) {
+          throw new Error("Method '" + (cls.prototype.getClassName()) + "::" + name + "' is final and must not be overridden (in '" + (this.getClassName()) + "')");
+        }
+        return method.apply(this, arguments);
+      };
+      wrapperMethod.__final__ = true;
+      return copyMethodProps(wrapperMethod, method);
+    });
 
     CoffeeDecorators.cachedProperty = function(dict) {
       var cache, method, name, nullRef, ref;
@@ -349,21 +346,6 @@
       wrapperMethod.clearCache = function() {
         return cache = createCache();
       };
-      this.prototype[name] = copyMethodProps(wrapperMethod, method);
-      return dict;
-    };
-
-    CoffeeDecorators.final = function(dict) {
-      var cls, method, name, ref, wrapperMethod;
-      ref = getStandardDict(dict), name = ref.name, method = ref.method;
-      cls = this;
-      wrapperMethod = function() {
-        if (this[name] !== cls.prototype[name]) {
-          throw new Error("Method '" + (cls.prototype.getClassName()) + "::" + name + "' is final and must not be overridden (in '" + (this.getClassName()) + "')");
-        }
-        return method.apply(this, arguments);
-      };
-      wrapperMethod.isFinal = true;
       this.prototype[name] = copyMethodProps(wrapperMethod, method);
       return dict;
     };

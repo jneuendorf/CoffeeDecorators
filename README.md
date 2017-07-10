@@ -79,9 +79,6 @@ The decorated method must not have a body and must not be called directly (but o
 ### `@override`
 A method with the same name as the decorated method must exist somewhere in the class hierarchy (above the method's class).
 
-### `@implements`
-Like `@override` but explicates where the overridden method is defined.
-
 ### `@final`
 The decorated method must not be overridden.
 If a method with the same name in a subclass is decorated with `@override` an error is thrown upon class creation.

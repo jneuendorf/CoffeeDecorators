@@ -137,6 +137,25 @@ describe "coffee-decorators", ->
             # implicit: class creation worked
             expect((new B()).method()).to.equal(2)
 
+        it "final", ->
+            class A extends CoffeeDecorators
+                @final \
+                method: () ->
+                    return 1
+
+            class B extends A
+                method: () ->
+                    return super() + 1
+
+            expect(() -> (new B()).method()).to.throw()
+
+            expect(() ->
+                class C extends A
+                    debugger
+                    @override \
+                    method: () ->
+                        return 2
+            ).to.throw()
 
     describe "class methods", ->
 
