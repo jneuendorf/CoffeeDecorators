@@ -239,10 +239,14 @@ class CoffeeDecorators
 
     # only works if an accidentally overriding method uses `@override` or calls `super` or `_super`.
     @final: methodHelper (name, method, cls) ->
+        if CoffeeDecorators.isClassmethod(method)
+            parent = cls
+        else
+            parent = cls.prototype
         wrapperMethod = () ->
-            if @[name] isnt cls::[name]
+            if @ isnt parent
                 # `cls::getClassName()` is used insteaf of `cls.getName()` because heterarchy does not correctly support class method inheritance
-                throw new Error("Method '#{cls::getClassName()}::#{name}' is final and must not be overridden (in '#{@getClassName()}')")
+                throw new Error("#{methodString(parent, name)} must is final and must not be overridden.")
             return method.apply(@, arguments)
         wrapperMethod.__final__ = true
         return copyMethodProps(wrapperMethod, method)

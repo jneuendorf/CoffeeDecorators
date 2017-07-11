@@ -151,7 +151,6 @@ describe "coffee-decorators", ->
 
             expect(() ->
                 class C extends A
-                    debugger
                     @override \
                     method: () ->
                         return 2
@@ -248,9 +247,30 @@ describe "coffee-decorators", ->
                         return _super() + 1
             ).to.throw(/^The method classMethod of type C must override or implement a supertype method\.$/)
 
-
             # implicit: class creation worked
             expect(B.classMethod()).to.equal(2)
+
+        it "final", ->
+            class A extends CoffeeDecorators
+                @final \
+                @classmethod \
+                classMethod: () ->
+                    return 1
+
+            class B extends A
+                # We must use _super here because otherwise we cannot intercept the override.
+                @classmethod \
+                classMethod: (_super) ->
+                    return _super() + 1
+
+            expect(() -> B.classMethod()).to.throw()
+            expect(() ->
+                class C extends A
+                    # We don't need to use _super here because @override makes the check.
+                    @override \
+                    classMethod: () ->
+                        return 2
+            ).to.throw()
 
     describe "introspection", ->
 

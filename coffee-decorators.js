@@ -279,10 +279,15 @@
     });
 
     CoffeeDecorators.final = methodHelper(function(name, method, cls) {
-      var wrapperMethod;
+      var parent, wrapperMethod;
+      if (CoffeeDecorators.isClassmethod(method)) {
+        parent = cls;
+      } else {
+        parent = cls.prototype;
+      }
       wrapperMethod = function() {
-        if (this[name] !== cls.prototype[name]) {
-          throw new Error("Method '" + (cls.prototype.getClassName()) + "::" + name + "' is final and must not be overridden (in '" + (this.getClassName()) + "')");
+        if (this !== parent) {
+          throw new Error((methodString(parent, name)) + " must is final and must not be overridden.");
         }
         return method.apply(this, arguments);
       };
