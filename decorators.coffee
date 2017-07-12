@@ -2,10 +2,12 @@
 if typeof global is "object" and global?.global is global
     root = global
     exports = module.exports
+    hashIt = require("hash-it")
 # browser
 else
     root = window
     exports = window
+    hashIt = window.hashIt
 
 
 
@@ -269,34 +271,48 @@ class CoffeeDecorators
     # Incrementally fills a dictionary of arguments-result pairs.
     # Arguments are compared using the argument's `equals` interface or with `===`.
     # The decorated method has a `clearCache()` method to reset the cache.
-    @cached: (dict) ->
-        # TODO: fix this: the cache is used across all different instances of a class (which results in really wrong behavior)
-        throw new Error("Don't use @cached yet!")
-        {name, method} = getStandardDict(dict)
-        nullRef = {}
-        # maps arguments to return value
-        argListsEqual = (args1, args2) ->
-            if args1.length isnt args2.length
-                return false
-            for args1Elem, i in args1
-                args2Elem = args2[i]
-                if args1Elem.equals?(args2Elem) is false or
-                    args2Elem.equals?(args1Elem) is false or
-                    args1Elem isnt args2Elem
-                        return false
-            return true
-        createCache = () ->
-            return new App.Hash(null, nullRef, argListsEqual)
-        cache = createCache()
-        wrapperMethod = (args...) ->
-            value = cache.get(args)
-            if value is nullRef
-                value = method.apply(@, args)
-                cache.put(args, value)
-            return value
-        wrapperMethod.clearCache = () ->
-            cache = createCache()
-        @::[name] = copyMethodProps(wrapperMethod, method)
-        return dict
+    @cached: methodHelper (name, method, cls) ->
+        cache = {}
+        wrapper = (args...) ->
+            # instance related cache
+            thisHash = hashIt(@)
+            if not cache.hasOwnProperty(thisHash)
+                cache[thisHash] = {}
+            thisCache = cache[thisHash]
+
+            argsHash = hashIt(args)
+            if not thisCache.hasOwnProperty(argsHash)
+                thisCache[argsHash] = method.apply(@, args)
+            return thisCache[argsHash]
+        return wrapper
+    # @cached: (dict) ->
+    #     # TODO: fix this: the cache is used across all different instances of a class (which results in really wrong behavior)
+    #     throw new Error("Don't use @cached yet!")
+    #     {name, method} = getStandardDict(dict)
+    #     nullRef = {}
+    #     # maps arguments to return value
+    #     argListsEqual = (args1, args2) ->
+    #         if args1.length isnt args2.length
+    #             return false
+    #         for args1Elem, i in args1
+    #             args2Elem = args2[i]
+    #             if args1Elem.equals?(args2Elem) is false or
+    #                 args2Elem.equals?(args1Elem) is false or
+    #                 args1Elem isnt args2Elem
+    #                     return false
+    #         return true
+    #     createCache = () ->
+    #         return new App.Hash(null, nullRef, argListsEqual)
+    #     cache = createCache()
+    #     wrapperMethod = (args...) ->
+    #         value = cache.get(args)
+    #         if value is nullRef
+    #             value = method.apply(@, args)
+    #             cache.put(args, value)
+    #         return value
+    #     wrapperMethod.clearCache = () ->
+    #         cache = createCache()
+    #     @::[name] = copyMethodProps(wrapperMethod, method)
+    #     return dict
 
 exports.CoffeeDecorators = CoffeeDecorators

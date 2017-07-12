@@ -3,11 +3,20 @@ if typeof global is "object" and global?.global is global
     root = global
     chai = require("chai")
     {CoffeeDecorators} = require("../coffee-decorators")
+    # taken from https://github.com/braveg1rl/performance-now/blob/614099d729aef5d7bdbb85c0d1060166d63d05c7/src/performance-now.coffee
+    getNanoSeconds = () ->
+        hr = process.hrtime()
+        return hr[0] * 1e9 + hr[1]
+    upTime = process.uptime() * 1e9
+    nodeLoadTime = getNanoSeconds() - upTime
+    now = () ->
+        return (getNanoSeconds() - nodeLoadTime) / 1e6
 # browser
 else
     root = window
     chai = window.chai
     {CoffeeDecorators} = window
+    now = performance.now
 
 {expect} = chai
 should = do chai.should
@@ -34,6 +43,12 @@ useCustomConsole = () ->
     CoffeeDecorators.setConsole(new Console())
     Array::last = () ->
         return @slice(-1)[0]
+
+measureTime = (callback) ->
+    start = now()
+    result = callback()
+    time = now() - start
+    return {time, result}
 
 
 describe "coffee-decorators", ->
@@ -155,6 +170,48 @@ describe "coffee-decorators", ->
                     method: () ->
                         return 2
             ).to.throw()
+
+        it "cached", ->
+            class A extends CoffeeDecorators
+                constructor: (@from) ->
+
+                @cached \
+                method: (to) ->
+                    result = 0
+                    for i in [@from..to]
+                        result += i
+                    return result
+
+            a1 = new A(1)
+            n1 = 1000
+            uncached = measureTime () ->
+                a1.method(n1)
+            cached = measureTime () ->
+                a1.method(n1)
+            expect(uncached.result).to.equal(cached.result)
+            expect(uncached.time).to.be.above(cached.time)
+
+            # not using the cache from before with new arguments
+            n2 = 999
+            uncached = measureTime () ->
+                a1.method(n2)
+            cached = measureTime () ->
+                a1.method(n2)
+            expect(uncached.result).to.equal(cached.result)
+            expect(uncached.time).to.be.above(cached.time)
+            expect(a1.method(n2)).to.equal(a1.method(n1) - 1000)
+
+            # not using the same cache as for `a1`
+            a2 = new A(2)
+            uncached = measureTime () ->
+                a2.method(n1)
+            cached = measureTime () ->
+                a2.method(n1)
+
+            # console.log "uncached = #{uncached.time}, cached = #{cached.time}"
+            expect(uncached.result).to.equal(cached.result)
+            expect(uncached.time).to.be.above(cached.time)
+            expect(a2.method(n1)).to.equal(a1.method(n1) - 1)
 
     describe "class methods", ->
 
