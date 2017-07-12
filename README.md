@@ -88,8 +88,6 @@ Otherwise an error will be thrown when the final method is called and `this !== 
 The return value of the method is cached after the first computation. The cache is populated for each instance because the function might depend on instance attributes.
 If the method does not depend on instance attributes a `@classmethod` should be used.
 
-### `@cachedProperty`
-
 ### `@kwargs`
 
 
