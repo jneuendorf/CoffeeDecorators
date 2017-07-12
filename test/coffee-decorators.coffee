@@ -329,6 +329,35 @@ describe "coffee-decorators", ->
                         return 2
             ).to.throw()
 
+        it "cached", ->
+            class A extends CoffeeDecorators
+                @cached \
+                @classmethod \
+                classMethod: (to) ->
+                    result = 0
+                    for i in [1..to]
+                        result += i
+                    return result
+
+            n1 = 1000
+            uncached = measureTime () ->
+                A.classMethod(n1)
+            cached = measureTime () ->
+                A.classMethod(n1)
+            expect(uncached.result).to.equal(cached.result)
+            expect(uncached.time).to.be.above(cached.time)
+
+            # not using the cache from before with new arguments
+            n2 = 999
+            uncached = measureTime () ->
+                A.classMethod(n2)
+            cached = measureTime () ->
+                A.classMethod(n2)
+            expect(uncached.result).to.equal(cached.result)
+            expect(uncached.time).to.be.above(cached.time)
+            expect(A.classMethod(n2)).to.equal(A.classMethod(n1) - 1000)
+
+
     describe "introspection", ->
 
         it "isClassmethod", ->
