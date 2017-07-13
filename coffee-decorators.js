@@ -297,26 +297,6 @@
       return copyMethodProps(wrapperMethod, method);
     });
 
-    CoffeeDecorators.cachedProperty = function(dict) {
-      var cache, method, name, nullRef, ref;
-      ref = getStandardDict(dict), name = ref.name, method = ref.method;
-      nullRef = {};
-      cache = nullRef;
-      Object.defineProperty(this.prototype, name, {
-        get: function() {
-          if (cache === nullRef) {
-            cache = method.call(this);
-          }
-          return cache;
-        },
-        set: function(value) {
-          cache = value;
-          return cache;
-        }
-      });
-      return dict;
-    };
-
     CoffeeDecorators.cached = methodHelper(function(name, method, cls) {
       var cache, wrapper;
       cache = {};
@@ -333,6 +313,31 @@
           thisCache[argsHash] = method.apply(this, args);
         }
         return thisCache[argsHash];
+      };
+      return wrapper;
+    });
+
+    CoffeeDecorators.kwargs = methodHelper(function(name, method, cls) {
+      var i, j, keywordArgs, len, methodArg, methodArgs, methodStr, posArgsRange, wrapper;
+      methodStr = "" + method;
+      methodArgs = methodStr.slice(methodStr.indexOf("(") + 1, methodStr.indexOf(")")).split(/\s*,\s*/g);
+      console.log(methodArgs);
+      posArgsRange = [];
+      keywordArgs = {};
+      i = 0;
+      for (i = j = 0, len = methodArgs.length; j < len; i = ++j) {
+        methodArg = methodArgs[i];
+        if (methodArg !== "kwargs" && methodArg !== "varargs_end") {
+          posArgsRange.push(i);
+        }
+      }
+      console.log(posArgsRange);
+      console.log(keywordArgs);
+      wrapper = function() {
+        var args, posArgs;
+        args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+        posArgs = args.slice(posArgsRange[0], +posArgsRange[1] + 1 || 9e9);
+        return method.apply(this, posArgs);
       };
       return wrapper;
     });

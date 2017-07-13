@@ -271,4 +271,57 @@ class CoffeeDecorators
             return thisCache[argsHash]
         return wrapper
 
+    @kwargs: methodHelper (name, method, cls) ->
+        methodStr = "#{method}"
+        methodArgs = methodStr
+            .slice(
+                methodStr.indexOf("(") + 1
+                methodStr.indexOf(")")
+            )
+            .split(/\s*,\s*/g)
+        console.log methodArgs
+        # posArgsRange = []
+        keywordArgs = {}
+        kwargsPos = -1
+
+        # find position where keyword-only arguments begin
+        for methodArg, i in methodArgs
+            if methodArg is "varargsEnd"
+                kwargsPos = i + 1
+                continue
+            if methodArg is "kwargs"
+                kwargsPos = i
+                # `kwargs` isnt the last argument => syntax error
+                if i isnt methodArgs.length - 1
+                    throw new Error("Invalid syntax. 'kwargs' must be the last argument.")
+
+        if kwargsPos > 0
+            posArgsEnd = (args) ->
+                return args.length
+        else if kwargsPos is 0
+            posArgsEnd = null
+        else
+            posArgsEnd = (args) ->
+                return args.length
+
+        # # adjust positional arguments:
+        # # 1. if 'varargs' was encountered
+        # # 2. if only 1 pos arg was encountered
+        # # 3. if more than 2 pos args was encountered
+        # if posArgsRange[posArgsRange.length - 1] is "varargs"
+        #     posArgsRange.push (args) ->
+        #         return args.length
+
+        console.log posArgsRange
+        console.log keywordArgs
+        wrapper = (args...) ->
+            argsToPass = []
+            if posArgsEnd?
+                argsToPass = argsToPass.concat(
+                    args[0...posArgsEnd(args)]
+                )
+            posArgs = args[posArgsRange[0]..posArgsRange[1]]
+            return method.apply(@, posArgs)
+        return wrapper
+
 exports.CoffeeDecorators = CoffeeDecorators

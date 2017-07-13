@@ -213,6 +213,60 @@ describe "coffee-decorators", ->
             expect(uncached.time).to.be.above(cached.time)
             expect(a2.method(n1)).to.equal(a1.method(n1) - 1)
 
+        it "kwargs", ->
+            # https://www.python.org/dev/peps/pep-3102/
+            class A extends CoffeeDecorators
+                # def (a, b):
+                @kwargs \
+                positionalOnly: (a, b) ->
+                    return {a, b}
+
+                # def (a, **kwargs):
+                @kwargs \
+                positionalAndKwargs: (a, kwargs) ->
+                    return {a, kwargs}
+
+                # def (a, *args, **kwargs):
+                @kwargs \
+                positionalAndVarargsAndKwargs: (a, varargs, kwargs) ->
+                    return {a, varargs, kwargs}
+
+                # def (a, *, b=2):
+                @kwargs \
+                requiredKeywordOnlyArguments: (a, varargsEnd, b=2) ->
+                    return {a, b}
+
+            # call like
+            a = new A()
+            expect(a.positionalOnly(1, 2)).to.eql({a: 1, b: 2})
+            expect(a.positionalOnly(1, {x:2})).to.eql({a: 1, b: {x: 2}})
+            expect(a.positionalOnly({a:1, b:2})).to.eql({a: 1, b: 2})
+
+            expect(a.positionalAndKwargs(1)).to.eql({a: 1, kwargs: {}})
+            expect(a.positionalAndKwargs({a:1})).to.eql({a: 1, kwargs: {}})
+            expect(a.positionalAndKwargs({a:1, b:2})).to.eql({a: 1, kwargs: {b: 2}})
+            expect(a.positionalAndKwargs(1, {b:2})).to.eql({a: 1, kwargs: {b: 2}})
+            expect(() ->
+                a.positionalAndKwargs(1, 2, 3)
+            ).to.throw(/^g\(\) takes 1 positional argument but 3 were given$/)
+
+            expect(a.positionalAndVarargsAndKwargs({a:1, b:2})).to.eql({a: 1, varargs: [], kwargs: {b: 2}})
+            expect(a.positionalAndVarargsAndKwargs(1, 2, 3, {b:2})).to.eql({a: 1, varargs: [2, 3], kwargs: {b: 2}})
+            expect(a.positionalAndVarargsAndKwargs(1, 2)).to.eql({a: 1, varargs: [2], kwargs: {}})
+
+            expect(() ->
+                a.requiredKeywordOnlyArguments(1, 2)
+            ).to.throw(/^g\(\) takes 1 positional argument but 3 were given$/)
+            expect(a.requiredKeywordOnlyArguments({a:1, b:2})).to.eql({a: 1, b: 2})
+            expect(a.requiredKeywordOnlyArguments(1, {b:2})).to.eql({a: 1, b: 2})
+            expect(() ->
+                a.requiredKeywordOnlyArguments({a:1})
+            ).to.throw(/^g\(\) missing 1 required keyword-only argument: 'b'$/)
+            expect(() ->
+                a.positionalAndVarargsEndAndKwargs(1)
+            ).to.throw(/^g\(\) missing 1 required keyword-only argument: 'b'$/)
+
+
     describe "class methods", ->
 
         before ->
