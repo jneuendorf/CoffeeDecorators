@@ -82,13 +82,12 @@ A method with the same name as the decorated method must exist somewhere in the 
 ### `@final`
 The decorated method must not be overridden.
 If a method with the same name in a subclass is decorated with `@override` an error is thrown upon class creation.
-Otherwise an error will be thrown when the final method is called and `this !== <instance of according class>`.
+Otherwise an error will be thrown when the final method is called and `this !== <instance of according class>` meaning the final method has been called from a context of a subclass (or an arbitrary context).
 
 ### `@cached`
-The return value of the method is cached after the first computation. The cache is populated for each instance because the function might depend on instance attributes.
+The return value of the method is cached after the first computation.
+The cache is populated for each instance because the function might depend on instance attributes.
 If the method does not depend on instance attributes a `@classmethod` should be used.
-
-### `@kwargs`
 
 
 ## Decorator combinations that require a certain order
