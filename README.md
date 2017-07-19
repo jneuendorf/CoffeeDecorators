@@ -99,12 +99,25 @@ If the method does not depend on instance attributes a `@classmethod` should be 
 ### Abstract classes and methods
 
 ```coffee
-# Class is attached to global scope.
-# The local variable still points to the undecorated class
+{abstract} = require("../coffee-decorators")
+
+# In case of
+# abstract class Shape
+#   ...
+# the local variable still points to the undecorated class
 # so we need to update it.
-Shape = @abstract class Shape
+Shape = abstract class Shape
     @abstract \
     area: ->
+
+# OR use @abstract after attaching it to the global scope
+global.abstract = abstract
+(() ->
+    @abstract \
+    class Shape
+        @abstract \
+        area: ->
+).call(global)
 
 class Rectangle extends Shape
     constructor: (@w, @h) ->

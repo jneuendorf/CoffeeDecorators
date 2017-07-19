@@ -2,7 +2,7 @@
 if typeof global is "object" and global?.global is global
     root = global
     chai = require("chai")
-    {CoffeeDecorators} = require("../coffee-decorators")
+    {CoffeeDecorators, abstract} = require("../coffee-decorators")
     # taken from https://github.com/braveg1rl/performance-now/blob/614099d729aef5d7bdbb85c0d1060166d63d05c7/src/performance-now.coffee
     getNanoSeconds = () ->
         hr = process.hrtime()
@@ -15,7 +15,7 @@ if typeof global is "object" and global?.global is global
 else
     root = window
     chai = window.chai
-    {CoffeeDecorators} = window
+    {CoffeeDecorators, abstract} = window
     now = performance.now
 
 {expect} = chai
@@ -57,34 +57,31 @@ describe "coffee-decorators", ->
 
         it "abstract", ->
             namespace = {}
-            # let's pretend we're in the global scope
-            (() ->
-                # This assignment is only necessary to update the local variable
-                # created by CoffeeScript.
-                # Since `AbstractClass` will be attached to the global namespace
-                # it is NOT necessary if used in a different scope.
-                AbstractClass = @abstract class AbstractClass
-                    constructor: () ->
-                        @prop = 2
-                expect(() -> new AbstractClass()).to.throw()
+            # This assignment is only necessary to update the local variable
+            # created by CoffeeScript.
+            # Since `AbstractClass` will be attached to the global namespace
+            # it is NOT necessary if used in a different scope.
+            AbstractClass = abstract class AbstractClass
+                constructor: () ->
+                    @prop = 2
+            expect(() -> new AbstractClass()).to.throw()
 
-                @abstract namespace, class AbstractClass
-                    constructor: () ->
-                        @prop = 2
-                expect(() -> new namespace.AbstractClass()).to.throw()
-            ).call(root)
+            abstract namespace, class AbstractClass2
+                constructor: () ->
+                    @prop = 2
+            expect(() -> new namespace.AbstractClass2()).to.throw()
 
             # invalid arguments
-            expect(() -> @abstract()).to.throw()
-            expect(() -> @abstract(1, AbstractClass)).to.throw()
-            expect(() -> @abstract(namespace, AbstractClass, 3)).to.throw()
+            expect(() -> abstract()).to.throw()
+            expect(() -> abstract(1, AbstractClass)).to.throw()
+            expect(() -> abstract(namespace, AbstractClass, 3)).to.throw()
             # check class creation
-            expect(AbstractClass).to.not.equal(namespace.AbstractClass)
+            expect(AbstractClass).to.not.equal(namespace.AbstractClass2)
 
             expect(() -> new AbstractClass()).to.throw()
             class A extends AbstractClass
             expect(() -> new A()).to.not.throw()
-            class B extends namespace.AbstractClass
+            class B extends namespace.AbstractClass2
             expect(() -> new B()).to.not.throw()
 
 

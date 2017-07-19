@@ -1,33 +1,24 @@
 # node.js
 if typeof global is "object" and global?.global is global
-    root = global
     exports = module.exports
     hashIt = require("hash-it")
 # browser
 else
-    root = window
     exports = window
     hashIt = window.hashIt
 
 
 
-defineDecorator = (name, func) ->
-    if root[name]?
-        throw new Error("Can't define decorator because `root` already has a property with name '#{name}'.")
-    root[name] = (args...) ->
-        return func(args...)
-    return root[name]
-
-abstractDecorationHelper = (createErrorMessage) ->
+classDecoratorHelper = (createErrorMessage) ->
     return (args...) ->
         if args.length is 2
             namespace = args[0]
             cls = args[1]
         else if args.length is 1
-            namespace = @
+            namespace = null
             cls = args[0]
 
-        if typeof(namespace) isnt "object" or typeof(cls) isnt "function"
+        if namespace? and typeof(namespace) isnt "object" or typeof(cls) isnt "function"
             throw new Error("Invalid arguments. Expected (namespace, class) or (class).")
 
         name = cls.name
@@ -132,10 +123,10 @@ Object.defineProperty exports, "pass", {
 }
 
 # These decorators only work for classes that are defined in the global namespace.
-exports.abstract = defineDecorator "abstract", abstractDecorationHelper () ->
+exports.abstract = classDecoratorHelper () ->
     return "Cannot instantiate abstract class '#{@constructor.name}'."
 
-exports.interface = defineDecorator "interface", abstractDecorationHelper () ->
+exports.interface = classDecoratorHelper () ->
     return "Cannot instantiate interface '#{@constructor.name}'."
 
 
